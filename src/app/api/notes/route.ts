@@ -8,31 +8,50 @@ const noteSchema = z.object({
 });
 
 export async function GET() {
-  const note = await prisma.shoppingNote.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { id: 1, content: "" }
-  });
+  try {
+    const note = await prisma.shoppingNote.upsert({
+      where: { id: 1 },
+      update: {},
+      create: { id: 1, content: "" }
+    });
 
-  return NextResponse.json(note);
+    return NextResponse.json(note);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Erro API notes (GET):", error);
+    return NextResponse.json(
+      { message: "Erro interno ao carregar o bloco de notas." },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PUT(request: Request) {
-  const body = await request.json();
-  const parsed = noteSchema.safeParse(body);
+  try {
+    const body = await request.json();
+    const parsed = noteSchema.safeParse(body);
 
-  if (!parsed.success) {
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Dados inválidos", errors: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const note = await prisma.shoppingNote.upsert({
+      where: { id: 1 },
+      update: { content: parsed.data.content },
+      create: { id: 1, content: parsed.data.content }
+    });
+
+    return NextResponse.json(note);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Erro API notes (PUT):", error);
     return NextResponse.json(
-      { message: "Dados inválidos", errors: parsed.error.flatten().fieldErrors },
-      { status: 400 }
+      { message: "Erro interno ao salvar o bloco de notas." },
+      { status: 500 }
     );
   }
-
-  const note = await prisma.shoppingNote.upsert({
-    where: { id: 1 },
-    update: { content: parsed.data.content },
-    create: { id: 1, content: parsed.data.content }
-  });
-
-  return NextResponse.json(note);
 }
+
